@@ -1,4 +1,5 @@
 from neo4j import GraphDatabase
+
 class SocialNetworkApp:
     def __init__(self, uri, user, password):
         self._uri = uri
@@ -26,6 +27,22 @@ class SocialNetworkApp:
     def _run_query(tx, query, parameters=None):
         result = tx.run(query, parameters)
         return [record for record in result]
+    
+    #UC-1: Register User
+    def register_user(username, name, email, password):
+        print(f"User {username} registered with name {name} and email {email}")
+
+    #UC-2: User Login
+    def login_user(username, password):
+        print(f"User {username} logged in")
+
+    #UC-3: View Profile
+    def view_profile(username):
+        print(f"Displaying profile for {username}")
+
+    #UC-4: Edit Profile
+    def edit_profile(username, name=None, bio=None):
+        print(f"User {username}'s profile updated")
 
     #UC-5: Follow Another User
     def follow_user(self, follower, followee):
@@ -74,3 +91,15 @@ class SocialNetworkApp:
             print(f"Mutual connections between {user1} and {user2}: {[f['mutualFriend'] for f in mutual_friends]}")
         else:
             print(f"{user1} and {user2} have no mutual connections.")
+    
+    #UC-9: Friend Recommendations
+    def recommend_friends(username):
+        print(f"Recommendations for {username}")
+
+    #UC-10: Search Users
+    def search_users(name):
+        print(f"Search results for {name}")
+
+    #UC-11: Explore popular users
+    def explore_popular_users():
+        print("Displaying popular users")
