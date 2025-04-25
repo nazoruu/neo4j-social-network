@@ -10,12 +10,14 @@ def main():
         print("4. Edit Profile")
         print("5. Follow User")
         print("6. Unfollow User")
-        print("7. View Connections")
-        print("8. Mutual Connections")
-        print("9. Recommend Friends")
-        print("10. Search Users")
-        print("11. Explore Popular Users")
-        print("12. Exit")
+        print("7. View Followers")
+        print("8. View Following")
+        print("9. Mutual Connections")
+        print("10. Recommend Friends")
+        print("11. Search Users")
+        print("12. Explore Popular Users")
+        print("13. Logout")
+        print("14. Exit")
 
         choice = input("Choose an option: ")
 
@@ -53,25 +55,32 @@ def main():
 
         elif choice == "7":
             username = input("Enter your username: ")
-            app.view_connections(username)
-
+            app.view_followers(username)
+        
         elif choice == "8":
+            username = input("Enter your username: ")
+            app.view_following(username)
+
+        elif choice == "9":
             user1 = input("Enter first username: ")
             user2 = input("Enter second username: ")
             app.mutual_connections(user1, user2)
 
-        elif choice == "9":
+        elif choice == "10":
             username = input("Enter your username: ")
             app.recommend_friends(username)
 
-        elif choice == "10":
+        elif choice == "11":
             name = input("Enter name or username to search: ")
             app.search_users(name)
 
-        elif choice == "11":
+        elif choice == "12":
             app.explore_popular_users()
 
-        elif choice == "12":
+        elif choice == "13":
+            print("logout")
+
+        elif choice == "14":
             print("Goodbye!")
             break
 
