@@ -1,4 +1,6 @@
+from socialnetwork import SocialNetworkApp
 def main():
+    app = SocialNetworkApp("bolt://localhost:7687", "neo4j", "password")
     while True:
         print("\n--- Social Network ---")
         print("1. Register")
