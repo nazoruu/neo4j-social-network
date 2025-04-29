@@ -46,24 +46,47 @@ class SocialNetworkApp:
 
     #UC-5: Follow Another User
     def follow_user(self, follower, followee):
-        query = """
-        placeholder
+        #First check if relationship exists
+        check_query = """
+        MATCH (a:Person {name: $follower})-[r:FOLLOWS]->(b:Person {name: $followee})
+        RETURN COUNT(r) AS relCount
         """
-        self.execute_query(query, {"follower": follower, "followee": followee})
-        print(f"{follower} now follows {followee}!")
+        result = self.execute_query(check_query, {"follower": follower, "followee": followee})
+    
+        if result and result[0]["relCount"] > 0:
+            print(f"{follower} already follows {followee}.")
+        else:
+            follow_query = """
+            MATCH (a:Person {name: $follower}), (b:Person {name: $followee})
+            MERGE (a)-[:FOLLOWS]->(b)
+            """
+            self.execute_query(follow_query, {"follower": follower, "followee": followee})
+            print(f"{follower} now follows {followee}!")
 
     #UC-6: Unfollow a User
     def unfollow_user(self, follower, followee):
-        query = """
-        placeholder
+        #First check if relationship exists
+        check_query = """
+        MATCH (a:Person {name: $follower})-[r:FOLLOWS]->(b:Person {name: $followee})
+        RETURN COUNT(r) AS relCount
         """
-        self.execute_query(query, {"follower": follower, "followee": followee})
-        print(f"{follower} has unfollowed {followee}.")
+        result = self.execute_query(check_query, {"follower": follower, "followee": followee})
+    
+        if result and result[0]["relCount"] == 0:
+            print(f"{follower} is not following {followee}.")
+        else:
+            unfollow_query = """
+            MATCH (a:Person {name: $follower})-[r:FOLLOWS]->(b:Person {name: $followee})
+            DELETE r
+            """
+            self.execute_query(unfollow_query, {"follower": follower, "followee": followee})
+            print(f"{follower} has unfollowed {followee}.")
 
     #UC-7: View Friends/Connections
     def view_following(self, user):
         query = """
-        placeholder
+        MATCH (:Person {name: $user})-[:FOLLOWS]->(f:Person)
+        RETURN f.name AS following
         """
         following = self.execute_query(query, {"user": user})
         if following:
@@ -73,7 +96,8 @@ class SocialNetworkApp:
 
     def view_followers(self, user):
         query = """
-        placeholder
+        MATCH (f:Person)-[:FOLLOWS]->(:Person {name: $user})
+        RETURN f.name AS follower
         """
         followers = self.execute_query(query, {"user": user})
         if followers:
@@ -84,7 +108,8 @@ class SocialNetworkApp:
     #UC-8: Mutual Connections
     def mutual_connections(self, user1, user2):
         query = """
-        placeholder
+        MATCH (a:Person {name: $user1})-[:FOLLOWS]->(m:Person)<-[:FOLLOWS]-(b:Person {name: $user2})
+        RETURN m.name AS mutualFriend
         """
         mutual_friends = self.execute_query(query, {"user1": user1, "user2": user2})
         if mutual_friends:
