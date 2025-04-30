@@ -1,7 +1,8 @@
 from socialnetwork import SocialNetworkApp
 
+
 def main():
-    app = SocialNetworkApp("bolt://localhost:7687", "neo4j", "password")
+    app = SocialNetworkApp("bolt://localhost:7687", "neo4j", "neo4j")
     while True:
         print("\n--- Social Network ---")
         print("1. Register User")
@@ -22,16 +23,16 @@ def main():
         choice = input("Choose an option: ")
 
         if choice == "1":
-            username = input("Enter username: ")
-            name = input("Enter name: ")
             email = input("Enter email: ")
             password = input("Enter password: ")
+            username = input("Enter username: ")
+            name = input("Enter name: ")
             app.register_user(username, name, email, password)
 
         elif choice == "2":
-            username = input("Enter username: ")
+            email = input("Enter email: ")
             password = input("Enter password: ")
-            app.login_user(username, password)
+            app.login_user(email, password)
 
         elif choice == "3":
             username = input("Enter username: ")
@@ -40,8 +41,8 @@ def main():
         elif choice == "4":
             username = input("Enter username: ")
             name = input("Enter new name (leave blank to keep current): ")
-            bio = input("Enter new bio (leave blank to keep current): ")
-            app.edit_profile(username, name, bio)
+            password = input("Enter new password (leave blank to keep current): ")
+            app.edit_profile(username, name, password)
 
         elif choice == "5":
             follower = input("Enter your username: ")
@@ -56,7 +57,7 @@ def main():
         elif choice == "7":
             username = input("Enter your username: ")
             app.view_followers(username)
-        
+
         elif choice == "8":
             username = input("Enter your username: ")
             app.view_following(username)
@@ -78,7 +79,7 @@ def main():
             app.explore_popular_users()
 
         elif choice == "13":
-            print("logout")
+            app.logout()
 
         elif choice == "14":
             print("Goodbye!")
@@ -86,6 +87,7 @@ def main():
 
         else:
             print("Invalid choice, please try again.")
+
 
 if __name__ == "__main__":
     main()

@@ -1,12 +1,17 @@
 from neo4j import GraphDatabase
+from neo4j.exceptions import ConstraintError
+
 
 class SocialNetworkApp:
     def __init__(self, uri, user, password):
+        self._authenticated = None
         self._uri = uri
         self._user = user
         self._password = password
         try:
-            self._driver = GraphDatabase.driver(self._uri, auth=(self._user, self._password))
+            self._driver = GraphDatabase.driver(
+                self._uri, auth=(self._user, self._password)
+            )
             self._check_connection()
             print("Connected to Neo4j successfully!")
         except Exception as e:
@@ -27,32 +32,162 @@ class SocialNetworkApp:
     def _run_query(tx, query, parameters=None):
         result = tx.run(query, parameters)
         return [record for record in result]
-    
-    #UC-1: Register User
-    def register_user(username, name, email, password):
-        print(f"User {username} registered with name {name} and email {email}")
 
-    #UC-2: User Login
-    def login_user(username, password):
-        print(f"User {username} logged in")
+    # UC-1: Register User
+    def register_user(self, username, name, email, password):
+        print("OUPUT--------------------------------------------")
+        try:
+            check_query = """
+                CREATE (:Person {
+                    email: $email,
+                    username: $username,
+                    name: $name,
+                    password: $password
+                })
+            """
+            self.execute_query(
+                check_query,
+                {
+                    "email": email,
+                    "username": username,
+                    "name": name,
+                    "password": password,
+                },
+            )
+            print(
+                f"User {username} registered with name {name} and email {email}"
+            )
+            self._authenticated = username
+            return True
+        except ConstraintError:
+            print("Email and username must be unique")
+            return False
 
-    #UC-3: View Profile
-    def view_profile(username):
-        print(f"Displaying profile for {username}")
+    # UC-2: User Login
+    def login_user(self, email, password):
+        print("OUPUT--------------------------------------------")
+        check_query = """
+            MATCH (p:Person {email: $email, password: $password})
+            RETURN p LIMIT 1
+        """
+        result = self.execute_query(check_query, {"email": email, "password": password})
 
-    #UC-4: Edit Profile
-    def edit_profile(username, name=None, bio=None):
-        print(f"User {username}'s profile updated")
+        if len(result) > 0:
+            user = result[0]["p"]
+            self._authenticated = user["username"]
+            print(f"User {user['email']} logged in")
+        else:
+            print("Invalid email or password")
 
-    #UC-5: Follow Another User
+    def logout(self):
+        print("OUPUT--------------------------------------------")
+        self._authenticated = None
+        print("Logged out")
+
+    # UC-3: View Profile
+    def view_profile(self, username):
+        print("OUPUT--------------------------------------------")
+        if not self._authenticated:
+            print("Authentication required")
+            return
+        if self._authenticated != username:
+            print("You can only view your own profile.")
+            return
+
+        result = self.execute_query("""
+                MATCH (p:Person {username: $username})
+                RETURN p.name AS name, p.username AS username, p.email AS email, p.password AS password
+                LIMIT 1
+            """, {"username": username})
+
+        record = result[0] if len(result) > 0 else None
+        if record:
+            print("User Profile:")
+            print("Email:", record["email"])
+            print("Username:", record["username"])
+            print("Name:", record["name"])
+        else:
+            print("User does not exist.")
+
+    # UC-4: Edit Profile
+    def edit_profile(self, username, name, password):
+        print("OUPUT--------------------------------------------")
+        if not self._authenticated:
+            print("Authentication required")
+            return
+        if self._authenticated != username:
+            print("You can only edit your own profile.")
+            return
+
+        result = self.execute_query(
+            """
+            MATCH (p:Person {username: $username})
+            RETURN p
+            LIMIT 1
+        """,
+            {"username": username},
+        )
+
+        if len(result) == 0:
+            print("User does not exist.")
+            return
+
+        set_clauses = []
+        params = {"username": username}
+
+        if name != "":
+            set_clauses.append("p.name = $name")
+            params["name"] = name
+        if password != "":
+            set_clauses.append("p.password = $password")
+            params["password"] = password
+
+        if not set_clauses:
+            print("No updates requested.")
+            return
+
+        set_query = ", ".join(set_clauses)
+
+        # Execute update query
+        result = self.execute_query(
+            f"""
+            MATCH (p:Person {{username: $username}})
+            SET {set_query}
+            RETURN p.name AS name, p.username AS username, p.email AS email, p.password AS password
+        """,
+            params,
+        )
+
+        updated_user = result[0] if len(result) > 0 else None
+        if updated_user:
+            print("User updated successfully.")
+            print("Updated Profile:")
+            print("Name:", updated_user["name"])
+            print("Username:", updated_user["username"])
+            print("Email:", updated_user["email"])
+            print("Password:", updated_user["password"])
+        else:
+            print("Unexpected error: User not found after update.")
+
+    # UC-5: Follow Another User
     def follow_user(self, follower, followee):
-        #First check if relationship exists
+        print("OUPUT--------------------------------------------")
+        if not self._authenticated:
+            print("Authentication required")
+            return
+        if self._authenticated != follower:
+            print("Your username must be the same as the follower's username.")
+            return
+
+        # First check if relationship exists
         check_query = """
         MATCH (a:Person {name: $follower})-[r:FOLLOWS]->(b:Person {name: $followee})
         RETURN COUNT(r) AS relCount
         """
-        result = self.execute_query(check_query, {"follower": follower, "followee": followee})
-    
+        result = self.execute_query(
+            check_query, {"follower": follower, "followee": followee}
+        )
+
         if result and result[0]["relCount"] > 0:
             print(f"{follower} already follows {followee}.")
         else:
@@ -60,18 +195,30 @@ class SocialNetworkApp:
             MATCH (a:Person {name: $follower}), (b:Person {name: $followee})
             MERGE (a)-[:FOLLOWS]->(b)
             """
-            self.execute_query(follow_query, {"follower": follower, "followee": followee})
+            self.execute_query(
+                follow_query, {"follower": follower, "followee": followee}
+            )
             print(f"{follower} now follows {followee}!")
 
-    #UC-6: Unfollow a User
+    # UC-6: Unfollow a User
     def unfollow_user(self, follower, followee):
-        #First check if relationship exists
+        print("OUPUT--------------------------------------------")
+        if not self._authenticated:
+            print("Authentication required")
+            return
+        if self._authenticated != follower:
+            print("Your username must be the same as the follower's username.")
+            return
+
+        # First check if relationship exists
         check_query = """
         MATCH (a:Person {name: $follower})-[r:FOLLOWS]->(b:Person {name: $followee})
         RETURN COUNT(r) AS relCount
         """
-        result = self.execute_query(check_query, {"follower": follower, "followee": followee})
-    
+        result = self.execute_query(
+            check_query, {"follower": follower, "followee": followee}
+        )
+
         if result and result[0]["relCount"] == 0:
             print(f"{follower} is not following {followee}.")
         else:
@@ -79,11 +226,18 @@ class SocialNetworkApp:
             MATCH (a:Person {name: $follower})-[r:FOLLOWS]->(b:Person {name: $followee})
             DELETE r
             """
-            self.execute_query(unfollow_query, {"follower": follower, "followee": followee})
+            self.execute_query(
+                unfollow_query, {"follower": follower, "followee": followee}
+            )
             print(f"{follower} has unfollowed {followee}.")
 
-    #UC-7: View Friends/Connections
+    # UC-7: View Friends/Connections
     def view_following(self, user):
+        print("OUPUT--------------------------------------------")
+        if not self._authenticated:
+            print("Authentication required")
+            return
+
         query = """
         MATCH (:Person {name: $user})-[:FOLLOWS]->(f:Person)
         RETURN f.name AS following
@@ -95,6 +249,11 @@ class SocialNetworkApp:
             print(f"{user} is not following anyone.")
 
     def view_followers(self, user):
+        print("OUPUT--------------------------------------------")
+        if not self._authenticated:
+            print("Authentication required")
+            return
+
         query = """
         MATCH (f:Person)-[:FOLLOWS]->(:Person {name: $user})
         RETURN f.name AS follower
@@ -105,26 +264,40 @@ class SocialNetworkApp:
         else:
             print(f"{user} has no followers.")
 
-    #UC-8: Mutual Connections
+    # UC-8: Mutual Connections
     def mutual_connections(self, user1, user2):
+        print("OUPUT--------------------------------------------")
+        if not self._authenticated:
+            print("Authentication required")
+            return
+
         query = """
         MATCH (a:Person {name: $user1})-[:FOLLOWS]->(m:Person)<-[:FOLLOWS]-(b:Person {name: $user2})
         RETURN m.name AS mutualFriend
         """
         mutual_friends = self.execute_query(query, {"user1": user1, "user2": user2})
         if mutual_friends:
-            print(f"Mutual connections between {user1} and {user2}: {[f['mutualFriend'] for f in mutual_friends]}")
+            print(
+                f"Mutual connections between {user1} and {user2}: {[f['mutualFriend'] for f in mutual_friends]}"
+            )
         else:
             print(f"{user1} and {user2} have no mutual connections.")
-    
-    #UC-9: Friend Recommendations
-    def recommend_friends(username):
+
+    # UC-9: Friend Recommendations
+    def recommend_friends(self, username):
+        print("OUPUT--------------------------------------------")
+        if not self._authenticated:
+            print("Authentication required")
+            return
+
         print(f"Recommendations for {username}")
 
-    #UC-10: Search Users
+    # UC-10: Search Users
     def search_users(name):
+        print("OUPUT--------------------------------------------")
         print(f"Search results for {name}")
 
-    #UC-11: Explore popular users
+    # UC-11: Explore popular users
     def explore_popular_users():
+        print("OUPUT--------------------------------------------")
         print("Displaying popular users")
