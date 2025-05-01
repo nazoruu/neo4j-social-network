@@ -35,32 +35,26 @@ def main():
             app.login_user(email, password)
 
         elif choice == "3":
-            username = input("Enter username: ")
-            app.view_profile(username)
+            app.view_profile()
 
         elif choice == "4":
-            username = input("Enter username: ")
             name = input("Enter new name (leave blank to keep current): ")
             password = input("Enter new password (leave blank to keep current): ")
-            app.edit_profile(username, name, password)
+            app.edit_profile(name, password)
 
         elif choice == "5":
-            follower = input("Enter your username: ")
             followee = input("Enter username to follow: ")
-            app.follow_user(follower, followee)
+            app.follow_user(followee)
 
         elif choice == "6":
-            follower = input("Enter your username: ")
             followee = input("Enter username to unfollow: ")
-            app.unfollow_user(follower, followee)
+            app.unfollow_user(followee)
 
         elif choice == "7":
-            username = input("Enter your username: ")
-            app.view_followers(username)
+            app.view_followers()
 
         elif choice == "8":
-            username = input("Enter your username: ")
-            app.view_following(username)
+            app.view_following()
 
         elif choice == "9":
             user1 = input("Enter first username: ")
@@ -68,7 +62,7 @@ def main():
             app.mutual_connections(user1, user2)
 
         elif choice == "10":
-            username = input("Enter your username: ")
+            username = input("Enter your query: ")
             app.recommend_friends(username)
 
         elif choice == "11":

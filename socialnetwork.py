@@ -85,20 +85,17 @@ class SocialNetworkApp:
         print("Logged out")
 
     # UC-3: View Profile
-    def view_profile(self, username):
+    def view_profile(self):
         print("OUPUT--------------------------------------------")
         if not self._authenticated:
             print("Authentication required")
-            return
-        if self._authenticated != username:
-            print("You can only view your own profile.")
             return
 
         result = self.execute_query("""
                 MATCH (p:Person {username: $username})
                 RETURN p.name AS name, p.username AS username, p.email AS email, p.password AS password
                 LIMIT 1
-            """, {"username": username})
+            """, {"username": self._authenticated})
 
         record = result[0] if len(result) > 0 else None
         if record:
@@ -110,13 +107,10 @@ class SocialNetworkApp:
             print("User does not exist.")
 
     # UC-4: Edit Profile
-    def edit_profile(self, username, name, password):
+    def edit_profile(self, name, password):
         print("OUPUT--------------------------------------------")
         if not self._authenticated:
             print("Authentication required")
-            return
-        if self._authenticated != username:
-            print("You can only edit your own profile.")
             return
 
         result = self.execute_query(
@@ -125,7 +119,7 @@ class SocialNetworkApp:
             RETURN p
             LIMIT 1
         """,
-            {"username": username},
+            {"username": self._authenticated},
         )
 
         if len(result) == 0:
@@ -133,7 +127,7 @@ class SocialNetworkApp:
             return
 
         set_clauses = []
-        params = {"username": username}
+        params = {"username": self._authenticated}
 
         if name != "":
             set_clauses.append("p.name = $name")
@@ -170,107 +164,97 @@ class SocialNetworkApp:
             print("Unexpected error: User not found after update.")
 
     # UC-5: Follow Another User
-    def follow_user(self, follower, followee):
+    def follow_user(self, followee):
         print("OUPUT--------------------------------------------")
         if not self._authenticated:
             print("Authentication required")
             return
-        if self._authenticated != follower:
-            print("Your username must be the same as the follower's username.")
-            return
 
         # First check if relationship exists
         check_query = """
-        MATCH (a:Person {name: $follower})-[r:FOLLOWS]->(b:Person {name: $followee})
+        MATCH (a:Person {username: $follower})-[r:FOLLOWS]->(b:Person {username: $followee})
         RETURN COUNT(r) AS relCount
         """
         result = self.execute_query(
-            check_query, {"follower": follower, "followee": followee}
+            check_query, {"follower": self._authenticated, "followee": followee}
         )
 
         if result and result[0]["relCount"] > 0:
-            print(f"{follower} already follows {followee}.")
+            print(f"{self._authenticated} already follows {followee}.")
         else:
             follow_query = """
-            MATCH (a:Person {name: $follower}), (b:Person {name: $followee})
+            MATCH (a:Person {username: $follower}), (b:Person {username: $followee})
             MERGE (a)-[:FOLLOWS]->(b)
             """
             self.execute_query(
-                follow_query, {"follower": follower, "followee": followee}
+                follow_query, {"follower": self._authenticated, "followee": followee}
             )
-            print(f"{follower} now follows {followee}!")
+            print(f"{self._authenticated} now follows {followee}!")
 
     # UC-6: Unfollow a User
-    def unfollow_user(self, follower, followee):
+    def unfollow_user(self, followee):
         print("OUPUT--------------------------------------------")
         if not self._authenticated:
             print("Authentication required")
-            return
-        if self._authenticated != follower:
-            print("Your username must be the same as the follower's username.")
             return
 
         # First check if relationship exists
         check_query = """
-        MATCH (a:Person {name: $follower})-[r:FOLLOWS]->(b:Person {name: $followee})
+        MATCH (a:Person {username: $follower})-[r:FOLLOWS]->(b:Person {username: $followee})
         RETURN COUNT(r) AS relCount
         """
         result = self.execute_query(
-            check_query, {"follower": follower, "followee": followee}
+            check_query, {"follower": self._authenticated, "followee": followee}
         )
 
         if result and result[0]["relCount"] == 0:
-            print(f"{follower} is not following {followee}.")
+            print(f"{self._authenticated} is not following {followee}.")
         else:
             unfollow_query = """
-            MATCH (a:Person {name: $follower})-[r:FOLLOWS]->(b:Person {name: $followee})
+            MATCH (a:Person {username: $follower})-[r:FOLLOWS]->(b:Person {username: $followee})
             DELETE r
             """
             self.execute_query(
-                unfollow_query, {"follower": follower, "followee": followee}
+                unfollow_query, {"follower": self._authenticated, "followee": followee}
             )
-            print(f"{follower} has unfollowed {followee}.")
+            print(f"{self._authenticated} has unfollowed {followee}.")
 
     # UC-7: View Friends/Connections
-    def view_following(self, user):
+    def view_following(self):
         print("OUPUT--------------------------------------------")
         if not self._authenticated:
             print("Authentication required")
             return
 
         query = """
-        MATCH (:Person {name: $user})-[:FOLLOWS]->(f:Person)
+        MATCH (:Person {username: $username})-[:FOLLOWS]->(f:Person)
         RETURN f.name AS following
         """
-        following = self.execute_query(query, {"user": user})
+        following = self.execute_query(query, {"username": self._authenticated})
         if following:
-            print(f"{user} is following: {[f['following'] for f in following]}")
+            print(f"{self._authenticated} is following: {[f['following'] for f in following]}")
         else:
-            print(f"{user} is not following anyone.")
+            print(f"{self._authenticated} is not following anyone.")
 
-    def view_followers(self, user):
+    def view_followers(self):
         print("OUPUT--------------------------------------------")
         if not self._authenticated:
             print("Authentication required")
             return
 
         query = """
-        MATCH (f:Person)-[:FOLLOWS]->(:Person {name: $user})
+        MATCH (f:Person)-[:FOLLOWS]->(:Person {username: $username})
         RETURN f.name AS follower
         """
-        followers = self.execute_query(query, {"user": user})
+        followers = self.execute_query(query, {"username": self._authenticated})
         if followers:
-            print(f"{user} has followers: {[f['follower'] for f in followers]}")
+            print(f"{self._authenticated} has followers: {[f['follower'] for f in followers]}")
         else:
-            print(f"{user} has no followers.")
+            print(f"{self._authenticated} has no followers.")
 
     # UC-8: Mutual Connections
     def mutual_connections(self, user1, user2):
         print("OUPUT--------------------------------------------")
-        if not self._authenticated:
-            print("Authentication required")
-            return
-
         query = """
         MATCH (a:Person {name: $user1})-[:FOLLOWS]->(m:Person)<-[:FOLLOWS]-(b:Person {name: $user2})
         RETURN m.name AS mutualFriend
@@ -293,11 +277,42 @@ class SocialNetworkApp:
         print(f"Recommendations for {username}")
 
     # UC-10: Search Users
-    def search_users(name):
+    def search_users(self, query):
         print("OUPUT--------------------------------------------")
-        print(f"Search results for {name}")
+        if query == "":
+            print("Please enter a query to search for users.")
+            return
+
+        result = self.execute_query("""
+            MATCH (p:Person)
+            WHERE toLower(p.name) CONTAINS toLower($query)
+               OR toLower(p.username) CONTAINS toLower($query)
+            RETURN p.name AS name, p.username AS username, p.email AS email
+            LIMIT 15
+        """, {"query": query})
+
+        if result:
+            print("Search results (limited to 15):")
+            for user in result:
+                print(f"NAME: {user['name']}, USERNAME: {user['username']}, EMAIL: {user['email']}")
+        else:
+            print("No matching users found.")
 
     # UC-11: Explore popular users
-    def explore_popular_users():
+    def explore_popular_users(self):
         print("OUPUT--------------------------------------------")
-        print("Displaying popular users")
+        result = self.execute_query("""
+            MATCH (follower:Person)-[:FOLLOWS]->(person:Person)
+            WITH person, COUNT(follower) AS followers
+            WHERE followers > 0
+            RETURN person.name AS name, person.username AS username, followers
+            ORDER BY followers DESC
+            LIMIT 15
+        """)
+
+        if result:
+            print("Top followed users (limited to 15):")
+            for user in result:
+                print(f"NAME: {user['name']}, USERNAME: {user['username']}, FOLLOWER COUNT: {user['followers']}")
+        else:
+            print("No followed users found.")
