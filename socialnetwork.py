@@ -253,36 +253,44 @@ class SocialNetworkApp:
             print(f"{self._authenticated} has no followers.")
 
     # UC-8: Mutual Connections
-    def mutual_connections(self, user1, user2):
+    def mutual_connections(self, user):
         print("OUPUT--------------------------------------------")
+        if not self._authenticated:
+            print("Authentication required")
+            return
+
         query = """
-        MATCH (a:Person {name: $user1})-[:FOLLOWS]->(m:Person)<-[:FOLLOWS]-(b:Person {name: $user2})
-        RETURN m.name AS mutualFriend
+        MATCH (a:Person {username: $user1})-[:FOLLOWS]->(m:Person)<-[:FOLLOWS]-(b:Person {username: $user2})
+        RETURN m.username AS mutualFriend
         """
-        mutual_friends = self.execute_query(query, {"user1": user1, "user2": user2})
+        mutual_friends = self.execute_query(query, {"user1": self._authenticated, "user2": user})
         if mutual_friends:
             print(
-                f"Mutual connections between {user1} and {user2}: {[f['mutualFriend'] for f in mutual_friends]}"
+                f"Mutual connections between {self._authenticated} and {user}: {[f['mutualFriend'] for f in mutual_friends]}"
             )
         else:
-            print(f"{user1} and {user2} have no mutual connections.")
+            print(f"{self._authenticated} and {user} have no mutual connections.")
 
     # UC-9: Friend Recommendations
-    def recommend_friends(self, username):
+    def recommend_friends(self):
         print("OUPUT--------------------------------------------")
+        if not self._authenticated:
+            print("Authentication required")
+            return
+
         query = """
         MATCH (a:Person {name: $username})-[:FOLLOWS]->(b:Person)-[:FOLLOWS]->(c:Person)
         WHERE NOT (a)-[:FOLLOWS]->(c) AND a <> c
-        RETURN DISTINCT c AS recs
+        RETURN DISTINCT c.username AS recs
         """
-        recs = self.execute_query(query, {"username": username})
+        recs = self.execute_query(query, {"username": self._authenticated})
         recs_list = set([f['recs'] for f in recs])
         if len(recs_list) > 0:
             print(
-                f"Possible people for {username} to follow: {list(recs_list)}"
+                f"Possible people for {self._authenticated} to follow: {list(recs_list)}"
             )
         else:
-            print(f"No follow suggestions for {username} to follow.")
+            print(f"No follow suggestions for {self._authenticated} to follow.")
 
     # UC-10: Search Users
     def search_users(self, query):

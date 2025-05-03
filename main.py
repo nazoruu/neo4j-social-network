@@ -57,13 +57,11 @@ def main():
             app.view_following()
 
         elif choice == "9":
-            user1 = input("Enter first username: ")
-            user2 = input("Enter second username: ")
-            app.mutual_connections(user1, user2)
+            user = input("Enter username: ")
+            app.mutual_connections(user)
 
         elif choice == "10":
-            username = input("Enter your query: ")
-            app.recommend_friends(username)
+            app.recommend_friends()
 
         elif choice == "11":
             name = input("Enter name or username to search: ")
