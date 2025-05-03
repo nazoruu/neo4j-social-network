@@ -270,11 +270,19 @@ class SocialNetworkApp:
     # UC-9: Friend Recommendations
     def recommend_friends(self, username):
         print("OUPUT--------------------------------------------")
-        if not self._authenticated:
-            print("Authentication required")
-            return
-
-        print(f"Recommendations for {username}")
+        query = """
+        MATCH (a:Person {name: $username})-[:FOLLOWS]->(b:Person)-[:FOLLOWS]->(c:Person)
+        WHERE NOT (a)-[:FOLLOWS]->(c) AND a <> c
+        RETURN DISTINCT c AS recs
+        """
+        recs = self.execute_query(query, {"username": username})
+        recs_list = set([f['recs'] for f in recs])
+        if len(recs_list) > 0:
+            print(
+                f"Possible people for {username} to follow: {list(recs_list)}"
+            )
+        else:
+            print(f"No follow suggestions for {username} to follow.")
 
     # UC-10: Search Users
     def search_users(self, query):
