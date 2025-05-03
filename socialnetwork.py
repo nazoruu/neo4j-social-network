@@ -279,7 +279,7 @@ class SocialNetworkApp:
             return
 
         query = """
-        MATCH (a:Person {name: $username})-[:FOLLOWS]->(b:Person)-[:FOLLOWS]->(c:Person)
+        MATCH (a:Person {username: $username})-[:FOLLOWS]->(b:Person)-[:FOLLOWS]->(c:Person)
         WHERE NOT (a)-[:FOLLOWS]->(c) AND a <> c
         RETURN DISTINCT c.username AS recs
         """
